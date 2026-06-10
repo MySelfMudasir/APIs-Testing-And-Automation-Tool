@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Runner — Bulk Request Engine</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #09090b;
+      --panel: #18181b;
+      --border: #27272a;
+      --surface: #1f1f23;
+      --accent: #f97316;
+      --accent-d: #c2410c;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --muted: #71717a;
+      --text: #e4e4e7;
+      --text-dim: #a1a1aa;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    code,
+    pre,
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--panel);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .method-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--accent);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      outline: none;
+      min-width: 100px;
+    }
+
+    .method-select:focus {
+      border-color: var(--accent);
+    }
+
+    #url-input {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    #url-input:focus {
+      border-color: var(--accent);
+    }
+
+    #url-input::placeholder {
+      color: var(--muted);
+    }
+
+    /* ── Panel tabs ── */
+    .tab-bar {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+    }
+
+    .tab-btn {
+      padding: 9px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: var(--text);
+    }
+
+    .tab-panel {
+      display: none;
+      padding: 14px;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+
+    /* ── KV Row ── */
+    .kv-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 28px;
+      gap: 6px;
+      margin-bottom: 6px;
+      align-items: center;
+    }
+
+    .kv-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 5px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .kv-input:focus {
+      border-color: var(--accent);
+    }
+
+    .kv-input::placeholder {
+      color: var(--muted);
+    }
+
+    .btn-remove {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 28px;
+      height: 28px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-remove:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .btn-add {
+      background: transparent;
+      border: 1px dashed var(--border);
+      color: var(--muted);
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 4px;
+      transition: all 0.15s;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .btn-add:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* ── Drop Zone ── */
+    #drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    #drop-zone:hover,
+    #drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(249, 115, 22, 0.04);
+    }
+
+    #drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── Data Preview Table ── */
+    #data-preview {
+      overflow-x: auto;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    #data-preview table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    #data-preview th {
+      background: var(--surface);
+      color: var(--accent);
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      white-space: nowrap;
+    }
+
+    #data-preview td {
+      padding: 5px 10px;
+      border-bottom: 1px solid #1c1c1f;
+      color: var(--text-dim);
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #data-preview tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* ── Toggle Switch ── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 11px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .toggle-slider:before {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 3px;
+      top: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--accent);
+    }
+
+    .toggle input:checked+.toggle-slider:before {
+      transform: translateX(18px);
+      background: white;
+    }
+
+    /* ── Launch Button ── */
+    #launch-btn {
+      background: linear-gradient(135deg, var(--accent), var(--accent-d));
+      color: white;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 16px 28px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #launch-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(249, 115, 22, 0.35);
+    }
+
+    #launch-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #launch-btn.running {
+      background: linear-gradient(135deg, #374151, #1f2937);
+      animation: pulseBtn 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulseBtn {
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(249, 115, 22, 0.15);
+      }
+    }
+
+    /* ── Progress Bar ── */
+    #progress-bar-track {
+      background: var(--border);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
+    }
+
+    #progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #fbbf24);
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    /* ── Log Entries ── */
+    #log-container {
+      max-height: 420px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      animation: slideIn 0.2s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .log-entry.success {
+      border-left: 3px solid var(--green);
+    }
+
+    .log-entry.failure {
+      border-left: 3px solid var(--red);
+    }
+
+    .log-entry.info {
+      border-left: 3px solid var(--yellow);
+    }
+
+    .log-status-badge {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 1px 7px;
+      border-radius: 4px;
+    }
+
+    .badge-2xx {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+    }
+
+    .badge-4xx {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .badge-5xx {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+    }
+
+    .badge-err {
+      background: rgba(234, 179, 8, 0.12);
+      color: var(--yellow);
+    }
+
+    /* ── JSON Viewer ── */
+    .json-block {
+      background: #0d0d0f;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 11px;
+      max-height: 140px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #a3e635;
+      margin-top: 8px;
+      cursor: pointer;
+    }
+
+    .json-block.collapsed {
+      max-height: 36px;
+      overflow: hidden;
+    }
+
+    .copy-btn {
+      background: var(--border);
+      border: none;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .copy-btn:hover {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* ── Stat Cards ── */
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      text-align: center;
+    }
+
+    .stat-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+    }
+
+    .stat-label {
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── Body Type Selector ── */
+    .body-type-btn {
+      padding: 5px 12px;
+      font-size: 11px;
+      border-radius: 5px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--muted);
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      transition: all 0.15s;
+    }
+
+    .body-type-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .body-type-btn:hover:not(.active) {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
+
+    /* ── Textarea ── */
+    .code-area {
+      width: 100%;
+      background: #0d0d0f;
+      border: 1px solid var(--border);
+      color: #a3e635;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      outline: none;
+      resize: vertical;
+      min-height: 120px;
+      transition: border-color 0.15s;
+    }
+
+    .code-area:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── Section Label ── */
+    .section-label {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    /* ── Number Input ── */
+    .num-input {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      outline: none;
+      width: 100%;
+      transition: border-color 0.15s;
+    }
+
+    .num-input:focus {
+      border-color: var(--accent);
+    }
+
+    /* ── Panel ── */
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-header .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      flex-shrink: 0;
+    }
+
+    .panel-body {
+      padding: 14px;
+    }
+
+    /* ── Idle state ── */
+    #empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+
+    /* ── Sample hint ── */
+    .hint-block {
+      background: rgba(249, 115, 22, 0.06);
+      border: 1px solid rgba(249, 115, 22, 0.2);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #fdba74;
+      margin-bottom: 12px;
+    }
+
+    /* ── Scrolling indicator ── */
+    .blink {
+      animation: blink 1s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    /* Validation error */
+    .field-error {
+      border-color: var(--red) !important;
+    }
+
+    .error-msg {
+      font-size: 11px;
+      color: var(--red);
+      margin-top: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════
+     TOP BAR — URL + Method
+════════════════════════════════════════════════════════════ -->
+  <div id="topbar">
+    <!-- Logo -->
+    <div style="display:flex;align-items:center;gap:8px;margin-right:10px;flex-shrink:0;">
+      <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="6" fill="#f97316" />
+        <path d="M7 14h6M14 7v14M14 7l4 4M14 21l4-4" stroke="white" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span style="font-weight:800;font-size:15px;letter-spacing:0.03em;">API <span
+          style="color:var(--accent)">RUNNER</span></span>
+    </div>
+
+    <!-- Method -->
+    <select class="method-select" id="method-select">
+      <option>GET</option>
+      <option>POST</option>
+      <option>PUT</option>
+      <option>DELETE</option>
+      <option>PATCH</option>
+    </select>
+
+    <!-- URL -->
+    <input id="url-input" type="text" placeholder="https://api.example.com/users/{{id}}"
+      value="https://jsonplaceholder.typicode.com/users/{{id}}" />
+
+    <!-- Status indicator -->
+    <div id="run-status" style="font-size:12px;color:var(--muted);white-space:nowrap;min-width:80px;text-align:right;">
+      IDLE
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════════════════════
+     MAIN GRID LAYOUT
+════════════════════════════════════════════════════════════ -->
+  <div style="display:grid;grid-template-columns:280px 1fr 320px;gap:12px;padding:12px;min-height:calc(100vh - 57px);">
+
+
+    <!-- ══ LEFT: Config Panel ══ -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Headers -->
+      <div class="panel">
+        <div class="tab-bar">
+          <div class="tab-btn active" data-tab="hdr" data-group="left">Headers</div>
+          <div class="tab-btn" data-tab="params" data-group="left">Params</div>
+          <div class="tab-btn" data-tab="body" data-group="left">Body</div>
+        </div>
+
+        <!-- Headers Tab -->
+        <div class="tab-panel active" id="tab-hdr" style="max-height:220px;overflow-y:auto;">
+          <div id="headers-list"></div>
+          <button class="btn-add" id="add-header">+ Add Header</button>
+        </div>
+
+        <!-- Params Tab -->
+        <div class="tab-panel" id="tab-params" style="max-height:220px;overflow-y:auto;">
+          <div id="params-list"></div>
+          <button class="btn-add" id="add-param">+ Add Param</button>
+        </div>
+
+        <!-- Body Tab -->
+        <div class="tab-panel" id="tab-body">
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button class="body-type-btn active" data-body="none">None</button>
+            <button class="body-type-btn" data-body="json">JSON</button>
+            <button class="body-type-btn" data-body="form">Form</button>
+          </div>
+          <div id="body-none" class="body-section">
+            <p style="color:var(--muted);font-size:12px;text-align:center;padding:10px 0;">No body for this request.</p>
+          </div>
+          <div id="body-json" class="body-section" style="display:none;">
+            <textarea class="code-area" id="body-raw-input"
+              placeholder='{"name": "{{name}}", "email": "{{email}}"}'></textarea>
+            <div id="body-json-error" class="error-msg" style="display:none;"></div>
+          </div>
+          <div id="body-form" class="body-section" style="display:none;">
+            <div id="body-form-list"></div>
+            <button class="btn-add" id="add-form-field">+ Add Field</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Run Settings -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Run Settings</div>
+        <div class="panel-body" style="display:flex;flex-direction:column;gap:14px;">
+
+          <div>
+            <div class="section-label">Delay (ms)</div>
+            <input class="num-input" id="delay-input" type="number" min="0" max="60000" value="300" />
+          </div>
+
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="stop-on-error" checked />
+              <span class="toggle-slider"></span>
+            </label>
+            <span style="font-size:12px;color:var(--text-dim);">Stop on error</span>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+    <!-- END LEFT ══════════════════════════ -->
+
+
+    <!-- ══ CENTER: Runner Engine ══ -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Mode Switcher -->
+      <div
+        style="display:flex;gap:0;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:2px;">
+        <button id="mode-single" class="mode-btn active"
+          style="flex:1;padding:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;background:var(--accent);color:white;">⚡
+          Single</button>
+        <button id="mode-bulk" class="mode-btn"
+          style="flex:1;padding:10px;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;border:none;cursor:pointer;transition:all 0.2s;background:transparent;color:var(--muted);">📦
+          Bulk</button>
+      </div>
+
+      <!-- Single Mode Notice -->
+      <div id="single-mode-notice" class="panel" style="display:block;">
+        <div class="panel-body">
+          <div style="display:flex;align-items:center;gap:10px;color:var(--text-dim);font-size:12px;">
+            <span style="font-size:20px;">⚡</span>
+            <span>Single mode — just hit <b style="color:var(--text);">Launch</b> to fire one request with the URL
+              above. No data file needed.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bulk Data Source -->
+      <div id="bulk-data-panel" class="panel" style="display:none;">
+        <div class="panel-header"><span class="dot"></span>Bulk Data Source</div>
+        <div class="panel-body">
+          <!-- Sub-tabs: Upload vs Paste -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button class="body-type-btn active" id="datasrc-upload-btn" data-src="upload">📂 Upload File</button>
+            <button class="body-type-btn" id="datasrc-paste-btn" data-src="paste">📋 Paste Data</button>
+          </div>
+
+          <!-- Upload sub-panel -->
+          <div id="datasrc-upload">
+            <div id="drop-zone">
+              <input type="file" id="file-input" accept=".json,.csv" />
+              <div style="pointer-events:none;">
+                <div style="font-size:32px;margin-bottom:10px;">📂</div>
+                <div style="font-size:14px;font-weight:700;margin-bottom:4px;">Drop your file here</div>
+                <div style="font-size:12px;color:var(--muted);">Supports .json (array) and .csv files</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paste sub-panel -->
+          <div id="datasrc-paste" style="display:none;">
+            <div class="hint-block" style="margin-bottom:8px;">
+              JSON array → [{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]<br />
+              CSV → id,name / 1,Alice / 2,Bob
+            </div>
+            <textarea id="paste-input" class="code-area" placeholder='[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]'
+              style="min-height:100px;"></textarea>
+            <button id="parse-paste-btn"
+              style="margin-top:8px;background:var(--accent);border:none;color:white;font-family:Syne,sans-serif;font-weight:700;font-size:12px;padding:8px 16px;border-radius:6px;cursor:pointer;width:100%;letter-spacing:0.04em;">PARSE
+              DATA</button>
+          </div>
+
+          <div id="file-meta" style="margin-top:10px;display:none;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+              <span id="file-name-badge"
+                style="background:rgba(249,115,22,0.12);color:var(--accent);font-family:monospace;font-size:11px;padding:2px 8px;border-radius:4px;"></span>
+              <span id="file-rows-badge" style="font-size:12px;color:var(--muted);"></span>
+              <span id="file-keys-badge" style="font-size:11px;font-family:monospace;color:var(--text-dim);"></span>
+              <button id="clear-file-btn"
+                style="margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:2px 8px;border-radius:4px;cursor:pointer;">✕
+                Clear</button>
+            </div>
+            <div id="data-preview"></div>
+          </div>
+
+          <div id="file-error" class="error-msg" style="display:none;margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <!-- Launch Button -->
+      <button id="launch-btn">
+        <span id="launch-label">⚡ LAUNCH</span>
+      </button>
+
+      <!-- Abort button (hidden when idle) -->
+      <button id="abort-btn"
+        style="display:none;background:transparent;border:1px solid var(--red);color:var(--red);font-family:Syne,sans-serif;font-weight:700;font-size:13px;padding:10px;border-radius:8px;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;">
+        ■ ABORT RUN
+      </button>
+
+    </div>
+    <!-- END CENTER ════════════════════════ -->
+
+
+    <!-- ══ RIGHT: Monitor Panel ══ -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <!-- Stats -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="stat-card">
+          <div class="stat-num" id="stat-total" style="color:var(--text);">0</div>
+          <div class="stat-label">Total</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-success" style="color:var(--green);">0</div>
+          <div class="stat-label">Success</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" id="stat-fail" style="color:var(--red);">0</div>
+          <div class="stat-label">Failed</div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="panel">
+        <div class="panel-header"><span class="dot"></span>Progress</div>
+        <div class="panel-body">
+          <div
+            style="display:flex;justify-content:space-between;margin-bottom:8px;font-family:monospace;font-size:12px;">
+            <span id="progress-label" style="color:var(--muted);">Waiting for run…</span>
+            <span id="progress-pct" style="color:var(--accent);font-weight:700;">0%</span>
+          </div>
+          <div id="progress-bar-track">
+            <div id="progress-bar-fill"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Log -->
+      <div class="panel" style="flex:1;overflow:hidden;display:flex;flex-direction:column;">
+        <div class="panel-header" style="justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="dot"></span>
+            <span>Live Responses</span>
+            <span id="live-dot" class="blink" style="color:var(--green);display:none;">●</span>
+          </div>
+          <button id="clear-log-btn"
+            style="background:transparent;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Clear</button>
+        </div>
+        <div class="panel-body" style="flex:1;overflow:hidden;padding:10px;">
+          <div id="log-container">
+            <div id="empty-state">
+              <div style="font-size:28px;margin-bottom:10px;">📡</div>
+              <div style="font-size:13px;font-weight:700;">No runs yet</div>
+              <div style="font-size:11px;margin-top:4px;">Upload data and launch a run to see live logs here.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <!-- END RIGHT ═════════════════════════ -->
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>
