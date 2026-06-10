@@ -50,6 +50,38 @@ const runStatusBadge  = $('run-status-badge');
 const globalEnvList   = $('global-env-list');
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
+
+/**
+ * showConfirm — custom shadcn-style dialog replacing window.confirm()
+ * @param {string} stepName  — shown in bold in the description
+ * @param {function} onOk    — called only if user clicks "Remove"
+ */
+function showConfirm(stepName, onOk) {
+  const overlay  = document.getElementById('confirm-overlay');
+  const nameEl   = document.getElementById('confirm-step-name');
+  const cancelBtn = document.getElementById('confirm-cancel');
+  const okBtn    = document.getElementById('confirm-ok');
+
+  nameEl.textContent = `"${stepName}"`;
+  overlay.classList.add('visible');
+
+  // Clone buttons to remove any stale listeners
+  const freshCancel = cancelBtn.cloneNode(true);
+  const freshOk     = okBtn.cloneNode(true);
+  cancelBtn.replaceWith(freshCancel);
+  okBtn.replaceWith(freshOk);
+
+  function close() { overlay.classList.remove('visible'); }
+
+  freshCancel.addEventListener('click', close);
+  freshOk.addEventListener('click', () => { close(); onOk(); });
+  // Click outside the box also cancels
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); }, { once: true });
+  // Escape key cancels
+  const onKey = e => { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', onKey); } };
+  document.addEventListener('keydown', onKey);
+}
+
 function escHtml(s) {
   return String(s ?? '')
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -80,6 +112,7 @@ function makeStep(overrides = {}) {
     dataRows:    [],   // for bulk-row bodyType
     pasteRaw:    '',   // raw pasted text (displayed in textarea)
     extractions: [],   // [{ varName, path }]
+    enabled:     true,       // when false, step is skipped during chain run
     stopOnError: true,
     activeTab:   'request', // 'request' | 'body' | 'extract' | 'data'
     ...overrides,
@@ -118,7 +151,15 @@ function makeStepCard(step, idx) {
       <div class="step-status-dot pending" id="dot-${step.id}"></div>
       <input class="step-name-input" id="name-${step.id}" value="${escHtml(step.name)}" placeholder="Step name" />
       <span class="step-method-badge m-${step.method}" id="mbadge-${step.id}">${step.method}</span>
-      <button class="btn-rm" id="del-${step.id}" title="Remove step" style="margin-left:4px;">✕</button>
+      <!-- Enable/disable toggle -->
+      <div class="toggle-wrap" onclick="event.stopPropagation()" style="gap:5px;flex-shrink:0;">
+        <label class="toggle" title="${step.enabled ? 'Step included — click to disable' : 'Step disabled — click to enable'}">
+          <input type="checkbox" id="enabled-${step.id}" ${step.enabled ? 'checked' : ''} />
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="enabled-text-${step.id}" style="font-size:10px;font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:0.06em;color:${step.enabled ? '#86efac' : 'var(--muted)'};">${step.enabled ? 'ON' : 'OFF'}</span>
+      </div>
+      <button class="btn-rm" id="del-${step.id}" title="Remove step" style="flex-shrink:0;">✕</button>
     </div>
 
     <!-- Body -->
@@ -220,18 +261,42 @@ function makeStepCard(step, idx) {
   const hdr = card.querySelector(`#hdr-${step.id}`);
   hdr.addEventListener('click', e => {
     if (e.target.classList.contains('step-name-input') ||
-        e.target.classList.contains('btn-rm')) return;
+        e.target.classList.contains('btn-rm')           ||
+        e.target.closest('.toggle-wrap')) return;
     step.expanded = !step.expanded;
     card.classList.toggle('expanded', step.expanded);
     persistChain();
   });
 
-  // Delete
+  // Delete — with custom confirm dialog
   card.querySelector(`#del-${step.id}`).addEventListener('click', e => {
     e.stopPropagation();
-    S.steps = S.steps.filter(s => s.id !== step.id);
-    renderAll();
+    showConfirm(step.name, () => {
+      S.steps = S.steps.filter(s => s.id !== step.id);
+      renderAll();
+    });
   });
+
+  // Enable / disable toggle
+  card.querySelector(`#enabled-${step.id}`).addEventListener('change', e => {
+    e.stopPropagation();
+    step.enabled = e.target.checked;
+    // Update ON / OFF label colour
+    const txt = card.querySelector(`#enabled-text-${step.id}`);
+    if (txt) { txt.textContent = step.enabled ? 'ON' : 'OFF'; txt.style.color = step.enabled ? '#86efac' : 'var(--muted)'; }
+    // Dim card when disabled — keep header readable
+    card.querySelector(`#body-${step.id}`).style.opacity = step.enabled ? '1' : '0.35';
+    card.style.opacity = step.enabled ? '1' : '0.6';
+    card.style.filter  = step.enabled ? '' : 'grayscale(0.5)';
+    persistChain();
+  });
+  // Apply initial visual state on render
+  if (!step.enabled) {
+    card.style.opacity = '0.6';
+    card.style.filter  = 'grayscale(0.5)';
+    const body = card.querySelector(`#body-${step.id}`);
+    if (body) body.style.opacity = '0.35';
+  }
 
   // Name
   card.querySelector(`#name-${step.id}`).addEventListener('input', e => {
@@ -539,12 +604,12 @@ async function startChain() {
   resetProgress();
   setRunning(true);
 
-  // Reset all step status dots
-  S.steps.forEach(step => setStepDot(step.id, 'pending'));
+  // Reset all step status dots (only enabled ones participate)
+  S.steps.forEach(step => setStepDot(step.id, step.enabled ? 'pending' : 'pending'));
 
   // Build payload
   const payload = {
-    steps: S.steps.map(s => ({
+    steps: S.steps.filter(s => s.enabled).map(s => ({
       id:          s.id,
       name:        s.name,
       method:      s.method,
@@ -823,7 +888,7 @@ function appendInfoLog(msg) {
   logScroll.scrollTop = logScroll.scrollHeight;
 }
 
-// ─── Clear / Export ────────────────────────────────────────────────────────────
+// ─── Clear / Export / Import ──────────────────────────────────────────────────
 $('clear-log-btn').addEventListener('click', () => {
   logScroll.innerHTML = `
     <div class="empty-msg" id="empty-state">
@@ -839,12 +904,123 @@ $('clear-log-btn').addEventListener('click', () => {
   ctxDisplay.innerHTML = '<span style="color:var(--muted);font-size:11px;font-family:monospace;">No variables yet.</span>';
 });
 
+// Export run log (existing behaviour, button now labelled "↓ Log")
 $('export-log-btn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(S.logEntries, null, 2)], { type: 'application/json' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href = url; a.download = `chain-run-${Date.now()}.json`;
+  a.href = url; a.download = `chain-run-log-${Date.now()}.json`;
   a.click(); URL.revokeObjectURL(url);
+});
+
+// ── Export full chain config ───────────────────────────────────────────────────
+// Serialises every step field + global env + run settings into one portable JSON.
+// The file is self-contained — importing it restores the complete chain exactly.
+$('export-chain-btn').addEventListener('click', () => {
+  const chainExport = {
+    _meta: {
+      exportedAt: new Date().toISOString(),
+      version: '1.0',
+      stepCount: S.steps.length,
+    },
+    settings: {
+      iterations:             parseInt(iterInput.value, 10)      || 1,
+      delayBetweenSteps:      parseInt(stepDelayInput.value, 10) || 0,
+      delayBetweenIterations: parseInt(iterDelayInput.value, 10) || 0,
+    },
+    globalEnv: envVars.filter(e => e.k.trim()).map(e => ({ k: e.k, v: e.v })),
+    steps: S.steps.map(s => ({
+      name:        s.name,
+      enabled:     s.enabled,
+      method:      s.method,
+      url:         s.url,
+      headers:     s.headers,       // [{ k, v }]
+      params:      s.params,        // [{ k, v }]
+      bodyType:    s.bodyType,
+      bodyRaw:     s.bodyRaw,
+      bodyForm:    s.bodyForm,      // [{ k, v }]
+      dataRows:    s.dataRows,      // bulk-row data if any
+      pasteRaw:    s.pasteRaw,
+      extractions: s.extractions,   // [{ varName, path }]
+      stopOnError: s.stopOnError,
+      // UI state — preserved so the chain opens exactly as left
+      expanded:    s.expanded,
+      activeTab:   s.activeTab,
+    })),
+  };
+
+  const blob = new Blob([JSON.stringify(chainExport, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  // Use a readable filename based on first step name or fallback
+  const label = S.steps[0]?.name?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'chain';
+  a.href = url; a.download = `chain-${label}-${Date.now()}.json`;
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// ── Import full chain config ───────────────────────────────────────────────────
+// Reads the exported JSON, validates the shape, wipes current state,
+// and fully restores steps + env + settings. Plug and play.
+$('import-chain-input').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = ''; // reset so same file can be re-imported
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    // Basic shape validation
+    if (!Array.isArray(data.steps)) {
+      appendInfoLog('❌ Import failed — invalid chain file (missing steps array).');
+      return;
+    }
+
+    // ── Restore settings ──
+    if (data.settings) {
+      if (data.settings.iterations)             iterInput.value      = data.settings.iterations;
+      if (data.settings.delayBetweenSteps != null) stepDelayInput.value = data.settings.delayBetweenSteps;
+      if (data.settings.delayBetweenIterations != null) iterDelayInput.value = data.settings.delayBetweenIterations;
+    }
+
+    // ── Restore global env ──
+    // Clear existing rows from DOM and array
+    envVars.length = 0;
+    envKvList.innerHTML = '';
+    if (Array.isArray(data.globalEnv) && data.globalEnv.length) {
+      $('env-panel').style.display = 'block';
+      data.globalEnv.forEach(e => addEnvRow(e.k, e.v));
+    }
+    refreshEnvBadges();
+
+    // ── Restore steps ──
+    // Reset counter so IDs stay clean, then rebuild from exported step objects
+    stepIdCounter = 0;
+    S.steps = data.steps.map(s => makeStep({
+      name:        s.name        ?? 'Step',
+      enabled:     s.enabled     ?? true,
+      method:      s.method      ?? 'GET',
+      url:         s.url         ?? '',
+      headers:     Array.isArray(s.headers)     ? s.headers     : [],
+      params:      Array.isArray(s.params)      ? s.params      : [],
+      bodyType:    s.bodyType    ?? 'none',
+      bodyRaw:     s.bodyRaw     ?? '',
+      bodyForm:    Array.isArray(s.bodyForm)    ? s.bodyForm    : [],
+      dataRows:    Array.isArray(s.dataRows)    ? s.dataRows    : [],
+      pasteRaw:    s.pasteRaw    ?? '',
+      extractions: Array.isArray(s.extractions) ? s.extractions : [],
+      stopOnError: s.stopOnError ?? true,
+      expanded:    s.expanded    ?? false,
+      activeTab:   s.activeTab   ?? 'request',
+    }));
+
+    renderAll();
+    persistChain();
+    appendInfoLog(`✓ Imported "${file.name}" — ${S.steps.length} step${S.steps.length !== 1 ? 's' : ''} loaded.`);
+
+  } catch (err) {
+    appendInfoLog(`❌ Import failed — ${err.message}`);
+  }
 });
 
 // ─── Clipboard ────────────────────────────────────────────────────────────────
@@ -914,6 +1090,7 @@ function restoreChain() {
   } catch { /* corrupted — start fresh */ }
 }
 
+
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 restoreChain();
 
@@ -923,17 +1100,18 @@ if (S.steps.length === 0) {
     name: 'Get Token',
     method: 'POST',
     url: '{{base_url}}/api/auth/login',
+    headers: [{ k: 'Content-Type', v: 'application/json' }, { k: 'Accept', v: 'application/json' }],
     bodyType: 'json',
     bodyRaw: '{\n  "username": "admin",\n  "password": "admin123"\n}',
     extractions: [{ varName: 'token', path: 'token' }],
     expanded: true,
-    activeTab: 'extract',
+    activeTab: 'body',
   });
   const s2 = makeStep({
     name: 'Fetch Data',
     method: 'GET',
     url: '{{base_url}}/api/data',
-    headers: [{ k: 'Authorization', v: 'Bearer {{token}}' }, { k: 'Accept', v: 'application/json' }],
+    headers: [{ k: 'Authorization', v: 'Bearer {{token}}' }, { k: 'Content-Type', v: 'application/json' }, { k: 'Accept', v: 'application/json' }],
     expanded: false,
     activeTab: 'request',
   });
@@ -941,6 +1119,7 @@ if (S.steps.length === 0) {
 
   // Seed base_url into global env
   addEnvRow('base_url', 'https://your-api.com');
+  addEnvRow('token', 'https://your-api.com');
   $('env-panel').style.display = 'block';
 
   renderAll();

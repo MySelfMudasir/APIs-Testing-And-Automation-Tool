@@ -4,15 +4,33 @@
  * Each data row replaces {{variable}} placeholders in URL, headers, and body.
  */
 
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
+require('dotenv').config();
 
-const app = express();
+const express = require('express');
+const axios   = require('axios');
+const path    = require('path');
+const { HttpsProxyAgent } = require('https-proxy-agent');
+
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
+// ─── Proxy config (controlled entirely from .env) ──────────────────────────────
+const PROXY_ENABLED = process.env.PROXY_ENABLED === 'true';
+const PROXY_URL     = process.env.PROXY_URL || '';
+const proxyAgent    = PROXY_ENABLED && PROXY_URL ? new HttpsProxyAgent(PROXY_URL) : null;
+
+// ─── Runner defaults from .env ─────────────────────────────────────────────────
+const DEFAULT_TIMEOUT  = parseInt(process.env.DEFAULT_TIMEOUT_MS,  10) || 30000;
+const DEFAULT_DELAY    = parseInt(process.env.DEFAULT_DELAY_MS,     10) || 300;
+const MAX_ITERATIONS   = parseInt(process.env.MAX_ITERATIONS,       10) || 500;
+const JSON_BODY_LIMIT  = process.env.JSON_BODY_LIMIT  || '10mb';
+const FILE_PARSE_LIMIT = process.env.FILE_PARSE_LIMIT || '5mb';
+
+console.log(`\n⚙  Proxy: ${PROXY_ENABLED ? `ON → ${PROXY_URL}` : 'OFF'}`);
+console.log(`⚙  Timeout: ${DEFAULT_TIMEOUT}ms | Max iterations: ${MAX_ITERATIONS}\n`);
+
 // ─── Middleware ────────────────────────────────────────────────────────────────
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: JSON_BODY_LIMIT }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ─── Variable Interpolation Utility ───────────────────────────────────────────
@@ -176,6 +194,10 @@ app.post('/api/execute-runner', async (req, res) => {
       requestData = parsed.data;
     } else if (bodyType === 'form') {
       requestData = deepInterpolate(bodyForm, row);
+    } else if (bodyType === 'bulk-row') {
+      // In bulk mode the row object itself is the request body.
+      // row already contains the parsed data (e.g. { title, body, userId })
+      requestData = row;
     }
 
     // 5. Execute the request via Axios
@@ -187,8 +209,9 @@ app.post('/api/execute-runner', async (req, res) => {
         url: resolvedURL,
         headers: resolvedHeaders,
         params: resolvedParams,
-        validateStatus: () => true, // Never throw on any HTTP status
-        timeout: 30000,             // 30s hard cap per request
+        validateStatus: () => true,
+        timeout: DEFAULT_TIMEOUT,
+        ...(proxyAgent && { httpsAgent: proxyAgent, httpAgent: proxyAgent }),
       };
 
       // Only attach body for non-GET methods
@@ -255,7 +278,7 @@ app.post('/api/execute-runner', async (req, res) => {
 });
 
 // ─── CSV/JSON Parse Endpoint (validation before run) ─────────────────────────
-app.post('/api/parse-file', express.text({ limit: '5mb', type: '*/*' }), (req, res) => {
+app.post('/api/parse-file', express.text({ limit: FILE_PARSE_LIMIT, type: '*/*' }), (req, res) => {
   const { fileType } = req.query; // 'csv' or 'json'
   const raw = req.body;
 
@@ -345,7 +368,7 @@ app.post('/api/execute-chain', async (req, res) => {
     delayBetweenIterations = 0,
   } = req.body;
 
-  const totalIterations = Math.max(1, Math.min(iterations, 500)); // cap at 500
+  const totalIterations = Math.max(1, Math.min(iterations, MAX_ITERATIONS));
   let chainAborted = false;
 
   sendSSE(res, 'CHAIN_START', {
@@ -418,7 +441,8 @@ app.post('/api/execute-chain', async (req, res) => {
           headers: resolvedHeaders,
           params: resolvedParams,
           validateStatus: () => true,
-          timeout: 30000,
+          timeout: DEFAULT_TIMEOUT,
+          ...(proxyAgent && { httpsAgent: proxyAgent, httpAgent: proxyAgent }),
         };
         if (requestData !== undefined && step.method !== 'GET') {
           axiosConfig.data = requestData;

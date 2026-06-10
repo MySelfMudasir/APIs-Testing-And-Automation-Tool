@@ -1,42 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Chain Runner — API Runner</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap"
+    rel="stylesheet" />
   <style>
     :root {
-      --bg:       #09090b;
-      --panel:    #18181b;
-      --panel2:   #141416;
-      --border:   #27272a;
-      --surface:  #1f1f23;
-      --accent:   #f97316;
+      --bg: #09090b;
+      --panel: #18181b;
+      --panel2: #141416;
+      --border: #27272a;
+      --surface: #1f1f23;
+      --accent: #f97316;
       --accent-d: #c2410c;
-      --accent2:  #6366f1;  /* indigo — secondary accent for chain flow */
-      --green:    #22c55e;
-      --red:      #ef4444;
-      --yellow:   #eab308;
-      --cyan:     #22d3ee;
-      --muted:    #71717a;
-      --text:     #e4e4e7;
+      --accent2: #6366f1;
+      /* indigo — secondary accent for chain flow */
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --cyan: #22d3ee;
+      --muted: #71717a;
+      --text: #e4e4e7;
       --text-dim: #a1a1aa;
     }
-    * { box-sizing: border-box; }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Syne', sans-serif;
-      margin: 0; min-height: 100vh; overflow-x: hidden;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
 
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: var(--panel); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    code,
+    pre,
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--panel);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--muted);
+    }
 
     /* ── Topbar ── */
     #topbar {
@@ -46,23 +74,27 @@
       display: flex;
       align-items: center;
       gap: 14px;
-      position: sticky; top: 0; z-index: 100;
+      position: sticky;
+      top: 0;
+      z-index: 100;
     }
 
     /* ── Layout ── */
     #main-grid {
       display: grid;
-      grid-template-columns: 420px 1fr;
+      grid-template-columns: 435px 1fr;
       gap: 0;
       height: calc(100vh - 53px);
       overflow: hidden;
     }
+
     #left-col {
       border-right: 1px solid var(--border);
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
+
     #right-col {
       display: flex;
       flex-direction: column;
@@ -88,36 +120,66 @@
       transition: border-color 0.15s;
       position: relative;
     }
-    .step-card.active-step { border-color: var(--accent2); }
-    .step-card.step-success { border-left: 3px solid var(--green); }
-    .step-card.step-error   { border-left: 3px solid var(--red); }
-    .step-card.step-running { border-left: 3px solid var(--accent); animation: stepPulse 1s ease-in-out infinite; }
+
+    .step-card.active-step {
+      border-color: var(--accent2);
+    }
+
+    .step-card.step-success {
+      border-left: 3px solid var(--green);
+    }
+
+    .step-card.step-error {
+      border-left: 3px solid var(--red);
+    }
+
+    .step-card.step-running {
+      border-left: 3px solid var(--accent);
+      animation: stepPulse 1s ease-in-out infinite;
+    }
 
     @keyframes stepPulse {
-      0%,100% { box-shadow: 0 0 0 0 rgba(249,115,22,0); }
-      50%      { box-shadow: 0 0 0 5px rgba(249,115,22,0.12); }
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(249, 115, 22, 0);
+      }
+
+      50% {
+        box-shadow: 0 0 0 5px rgba(249, 115, 22, 0.12);
+      }
     }
 
     .step-header {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
+      gap: 8px;
+      padding: 10px 12px;
       cursor: pointer;
       user-select: none;
       background: var(--panel2);
       border-bottom: 1px solid transparent;
       transition: border-color 0.15s;
+      overflow: hidden;
     }
-    .step-header:hover { background: #1c1c20; }
-    .step-card.expanded .step-header { border-bottom-color: var(--border); }
+
+    .step-header:hover {
+      background: #1c1c20;
+    }
+
+    .step-card.expanded .step-header {
+      border-bottom-color: var(--border);
+    }
 
     .step-num {
-      width: 26px; height: 26px;
+      width: 26px;
+      height: 26px;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       font-weight: 700;
@@ -136,7 +198,10 @@
       outline: none;
       cursor: text;
     }
-    .step-name-input::placeholder { color: var(--muted); }
+
+    .step-name-input::placeholder {
+      color: var(--muted);
+    }
 
     .step-method-badge {
       font-family: 'JetBrains Mono', monospace;
@@ -146,27 +211,72 @@
       border-radius: 4px;
       flex-shrink: 0;
     }
-    .m-GET    { background: rgba(34,197,94,0.12);   color: #86efac; }
-    .m-POST   { background: rgba(249,115,22,0.12);  color: #fdba74; }
-    .m-PUT    { background: rgba(234,179,8,0.12);   color: #fde047; }
-    .m-DELETE { background: rgba(239,68,68,0.12);   color: #fca5a5; }
-    .m-PATCH  { background: rgba(99,102,241,0.12);  color: #a5b4fc; }
+
+    .m-GET {
+      background: rgba(34, 197, 94, 0.12);
+      color: #86efac;
+    }
+
+    .m-POST {
+      background: rgba(249, 115, 22, 0.12);
+      color: #fdba74;
+    }
+
+    .m-PUT {
+      background: rgba(234, 179, 8, 0.12);
+      color: #fde047;
+    }
+
+    .m-DELETE {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+    }
+
+    .m-PATCH {
+      background: rgba(99, 102, 241, 0.12);
+      color: #a5b4fc;
+    }
 
     .step-status-dot {
-      width: 8px; height: 8px; border-radius: 50%;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
       background: var(--border);
       flex-shrink: 0;
       transition: background 0.2s;
     }
-    .step-status-dot.pending  { background: var(--border); }
-    .step-status-dot.running  { background: var(--accent); animation: blink 0.6s step-end infinite; }
-    .step-status-dot.success  { background: var(--green); }
-    .step-status-dot.error    { background: var(--red); }
 
-    @keyframes blink { 50% { opacity: 0; } }
+    .step-status-dot.pending {
+      background: var(--border);
+    }
 
-    .step-body { display: none; padding: 14px; }
-    .step-card.expanded .step-body { display: block; }
+    .step-status-dot.running {
+      background: var(--accent);
+      animation: blink 0.6s step-end infinite;
+    }
+
+    .step-status-dot.success {
+      background: var(--green);
+    }
+
+    .step-status-dot.error {
+      background: var(--red);
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+
+    .step-body {
+      display: none;
+      padding: 14px;
+    }
+
+    .step-card.expanded .step-body {
+      display: block;
+    }
 
     /* ── Step connector arrow ── */
     .step-connector {
@@ -176,6 +286,7 @@
       height: 18px;
       position: relative;
     }
+
     .step-connector::before {
       content: '';
       width: 1px;
@@ -183,12 +294,16 @@
       background: var(--border);
       position: absolute;
     }
+
     .step-connector-icon {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 50%;
-      width: 18px; height: 18px;
-      display: flex; align-items: center; justify-content: center;
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 9px;
       color: var(--accent2);
       position: relative;
@@ -208,10 +323,20 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    .field-input:focus { border-color: var(--accent); }
-    .field-input::placeholder { color: var(--muted); }
 
-    select.field-input { cursor: pointer; color: var(--accent); font-weight: 700; }
+    .field-input:focus {
+      border-color: var(--accent);
+    }
+
+    .field-input::placeholder {
+      color: var(--muted);
+    }
+
+    select.field-input {
+      cursor: pointer;
+      color: var(--accent);
+      font-weight: 700;
+    }
 
     .code-area {
       width: 100%;
@@ -227,7 +352,10 @@
       min-height: 90px;
       transition: border-color 0.15s;
     }
-    .code-area:focus { border-color: var(--accent); }
+
+    .code-area:focus {
+      border-color: var(--accent);
+    }
 
     .label {
       font-size: 10px;
@@ -246,6 +374,7 @@
       margin-bottom: 5px;
       align-items: center;
     }
+
     .kv-in {
       background: var(--surface);
       border: 1px solid var(--border);
@@ -257,16 +386,35 @@
       outline: none;
       width: 100%;
     }
-    .kv-in:focus { border-color: var(--accent); }
-    .kv-in::placeholder { color: var(--muted); }
-    .btn-rm {
-      background: transparent; border: 1px solid var(--border);
-      color: var(--muted); width: 24px; height: 24px;
-      border-radius: 4px; cursor: pointer; font-size: 12px;
-      display: flex; align-items: center; justify-content: center;
-      transition: all 0.15s; flex-shrink: 0;
+
+    .kv-in:focus {
+      border-color: var(--accent);
     }
-    .btn-rm:hover { border-color: var(--red); color: var(--red); }
+
+    .kv-in::placeholder {
+      color: var(--muted);
+    }
+
+    .btn-rm {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-rm:hover {
+      border-color: var(--red);
+      color: var(--red);
+    }
 
     .btn-add-kv {
       background: transparent;
@@ -281,7 +429,11 @@
       transition: all 0.15s;
       font-family: 'Syne', sans-serif;
     }
-    .btn-add-kv:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-add-kv:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     /* ── Extraction rows ── */
     .extract-row {
@@ -291,6 +443,7 @@
       margin-bottom: 5px;
       align-items: center;
     }
+
     .extract-arrow {
       font-size: 11px;
       color: var(--accent2);
@@ -305,6 +458,7 @@
       margin-bottom: 12px;
       gap: 0;
     }
+
     .step-tab {
       padding: 6px 12px;
       font-size: 11px;
@@ -316,8 +470,15 @@
       letter-spacing: 0.04em;
       text-transform: uppercase;
     }
-    .step-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .step-tab:hover:not(.active) { color: var(--text); }
+
+    .step-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .step-tab:hover:not(.active) {
+      color: var(--text);
+    }
 
     /* ── Body type selector ── */
     .body-btn {
@@ -332,8 +493,17 @@
       font-weight: 600;
       transition: all 0.15s;
     }
-    .body-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
-    .body-btn:hover:not(.active) { border-color: var(--text-dim); color: var(--text); }
+
+    .body-btn.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+
+    .body-btn:hover:not(.active) {
+      border-color: var(--text-dim);
+      color: var(--text);
+    }
 
     /* ── Run controls ── */
     #run-controls {
@@ -344,6 +514,7 @@
       flex-direction: column;
       gap: 10px;
     }
+
     #run-controls-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -365,18 +536,33 @@
       width: 100%;
       transition: all 0.2s;
     }
+
     #launch-chain-btn:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 8px 25px rgba(99,102,241,0.35);
+      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.35);
     }
-    #launch-chain-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    #launch-chain-btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     #launch-chain-btn.running {
       background: linear-gradient(135deg, #374151, #1f2937);
       animation: chainPulse 1.5s ease-in-out infinite;
     }
+
     @keyframes chainPulse {
-      0%,100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-      50%      { box-shadow: 0 0 0 6px rgba(99,102,241,0.2); }
+
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+      }
+
+      50% {
+        box-shadow: 0 0 0 6px rgba(99, 102, 241, 0.2);
+      }
     }
 
     #abort-chain-btn {
@@ -394,7 +580,10 @@
       text-transform: uppercase;
       transition: all 0.15s;
     }
-    #abort-chain-btn:hover { background: rgba(239,68,68,0.1); }
+
+    #abort-chain-btn:hover {
+      background: rgba(239, 68, 68, 0.1);
+    }
 
     /* ── Right panel ── */
     #monitor-header {
@@ -414,11 +603,13 @@
       text-align: center;
       min-width: 70px;
     }
+
     .stat-pill-num {
       font-family: 'JetBrains Mono', monospace;
       font-size: 18px;
       font-weight: 700;
     }
+
     .stat-pill-label {
       font-size: 9px;
       letter-spacing: 0.08em;
@@ -432,6 +623,7 @@
       border-bottom: 1px solid var(--border);
       background: var(--panel);
     }
+
     .progress-track {
       background: var(--border);
       border-radius: 999px;
@@ -439,6 +631,7 @@
       overflow: hidden;
       margin-top: 6px;
     }
+
     .progress-fill {
       height: 100%;
       background: linear-gradient(90deg, var(--accent2), #818cf8);
@@ -467,14 +660,35 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
     }
+
     @keyframes slideIn {
-      from { opacity: 0; transform: translateY(-3px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(-3px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
-    .chain-log.log-success { border-left: 3px solid var(--green); }
-    .chain-log.log-error   { border-left: 3px solid var(--red); }
-    .chain-log.log-info    { border-left: 3px solid var(--accent2); }
-    .chain-log.log-iter    { border-left: 3px solid var(--accent); background: rgba(249,115,22,0.04); }
+
+    .chain-log.log-success {
+      border-left: 3px solid var(--green);
+    }
+
+    .chain-log.log-error {
+      border-left: 3px solid var(--red);
+    }
+
+    .chain-log.log-info {
+      border-left: 3px solid var(--accent2);
+    }
+
+    .chain-log.log-iter {
+      border-left: 3px solid var(--accent);
+      background: rgba(249, 115, 22, 0.04);
+    }
 
     .chain-log-header {
       display: flex;
@@ -483,11 +697,15 @@
       padding: 8px 12px;
       cursor: pointer;
     }
+
     .chain-log-body {
       display: none;
       padding: 0 12px 10px;
     }
-    .chain-log.expanded .chain-log-body { display: block; }
+
+    .chain-log.expanded .chain-log-body {
+      display: block;
+    }
 
     .status-badge {
       display: inline-block;
@@ -496,11 +714,31 @@
       padding: 1px 6px;
       border-radius: 3px;
     }
-    .b-2xx { background: rgba(34,197,94,0.15);   color: var(--green); }
-    .b-4xx { background: rgba(239,68,68,0.15);   color: var(--red); }
-    .b-5xx { background: rgba(239,68,68,0.12);   color: #f87171; }
-    .b-err { background: rgba(234,179,8,0.12);   color: var(--yellow); }
-    .b-inf { background: rgba(99,102,241,0.15);  color: #a5b4fc; }
+
+    .b-2xx {
+      background: rgba(34, 197, 94, 0.15);
+      color: var(--green);
+    }
+
+    .b-4xx {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--red);
+    }
+
+    .b-5xx {
+      background: rgba(239, 68, 68, 0.12);
+      color: #f87171;
+    }
+
+    .b-err {
+      background: rgba(234, 179, 8, 0.12);
+      color: var(--yellow);
+    }
+
+    .b-inf {
+      background: rgba(99, 102, 241, 0.15);
+      color: #a5b4fc;
+    }
 
     .json-viewer {
       background: #0a0a0c;
@@ -521,8 +759,8 @@
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      background: rgba(99,102,241,0.12);
-      border: 1px solid rgba(99,102,241,0.25);
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.25);
       color: #a5b4fc;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
@@ -531,34 +769,182 @@
     }
 
     .copy-btn {
-      background: var(--border); border: none;
-      color: var(--muted); font-size: 10px;
-      padding: 2px 7px; border-radius: 3px;
-      cursor: pointer; transition: all 0.15s;
+      background: var(--border);
+      border: none;
+      color: var(--muted);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s;
       font-family: 'JetBrains Mono', monospace;
     }
-    .copy-btn:hover { background: var(--accent2); color: white; }
 
-    /* ── Toggle ── */
-    .toggle-wrap { display: flex; align-items: center; gap: 8px; }
-    .toggle { position: relative; width: 36px; height: 20px; }
-    .toggle input { opacity: 0; width: 0; height: 0; }
-    .toggle-slider {
-      position: absolute; inset: 0;
-      background: var(--border); border-radius: 10px;
-      cursor: pointer; transition: 0.2s;
+    .copy-btn:hover {
+      background: var(--accent2);
+      color: white;
     }
+
+    /* ── Toggle (generic, used in Request tab options) ── */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
     .toggle-slider:before {
       content: '';
       position: absolute;
-      width: 14px; height: 14px;
-      left: 3px; top: 3px;
+      width: 14px;
+      height: 14px;
+      left: 3px;
+      top: 3px;
       background: var(--muted);
       border-radius: 50%;
-      transition: 0.2s;
+      transition: transform 0.2s, background 0.2s;
     }
-    .toggle input:checked + .toggle-slider { background: var(--accent2); }
-    .toggle input:checked + .toggle-slider:before { transform: translateX(16px); background: white; }
+
+    .toggle input:checked+.toggle-slider {
+      background: var(--green);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+    }
+
+    .toggle input:checked+.toggle-slider:before {
+      transform: translateX(16px);
+      background: white;
+      box-shadow: 0 1px 4px rgba(34, 197, 94, 0.4);
+    }
+
+    /* step-enable-* removed — uses shared .toggle style */
+
+    /* ── Custom Confirm Dialog ── */
+    #confirm-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s;
+    }
+
+    #confirm-overlay.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    #confirm-box {
+      background: #1c1c20;
+      border: 1px solid #3f3f46;
+      border-radius: 14px;
+      padding: 28px 28px 22px;
+      width: 340px;
+      max-width: 92vw;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+      transform: scale(0.94) translateY(8px);
+      transition: transform 0.18s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    #confirm-overlay.visible #confirm-box {
+      transform: scale(1) translateY(0);
+    }
+
+    #confirm-icon {
+      width: 42px;
+      height: 42px;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+
+    #confirm-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    #confirm-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.55;
+      margin-bottom: 22px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #confirm-desc b {
+      color: #fdba74;
+      font-weight: 600;
+    }
+
+    #confirm-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .confirm-btn {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      padding: 9px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+
+    #confirm-cancel {
+      background: var(--surface);
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    #confirm-cancel:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    #confirm-ok {
+      background: var(--red);
+      color: white;
+    }
+
+    #confirm-ok:hover {
+      background: #dc2626;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+    }
 
     /* ── Context viewer ── */
     #ctx-panel {
@@ -568,6 +954,7 @@
       max-height: 160px;
       overflow-y: auto;
     }
+
     .ctx-kv {
       display: flex;
       gap: 6px;
@@ -577,8 +964,19 @@
       padding: 2px 0;
       border-bottom: 1px solid #1a1a1e;
     }
-    .ctx-key { color: var(--accent2); min-width: 120px; flex-shrink: 0; }
-    .ctx-val { color: #a3e635; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    .ctx-key {
+      color: var(--accent2);
+      min-width: 120px;
+      flex-shrink: 0;
+    }
+
+    .ctx-val {
+      color: #a3e635;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
 
     /* ── Empty state ── */
     .empty-msg {
@@ -600,7 +998,11 @@
       transition: all 0.2s;
       margin-top: 4px;
     }
-    #add-step-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    #add-step-btn:hover {
+      border-color: var(--accent2);
+      color: var(--accent2);
+    }
 
     /* ── Env panel ── */
     #env-panel {
@@ -625,8 +1027,17 @@
       transition: all 0.15s;
       font-family: 'Syne', sans-serif;
     }
-    .nav-btn:hover { border-color: var(--text); color: var(--text); }
-    .nav-btn.active { background: var(--accent2); border-color: var(--accent2); color: white; }
+
+    .nav-btn:hover {
+      border-color: var(--text);
+      color: var(--text);
+    }
+
+    .nav-btn.active {
+      background: var(--accent2);
+      border-color: var(--accent2);
+      color: white;
+    }
 
     /* ── Num input ── */
     .num-in {
@@ -641,15 +1052,18 @@
       width: 100%;
       transition: border-color 0.15s;
     }
-    .num-in:focus { border-color: var(--accent2); }
+
+    .num-in:focus {
+      border-color: var(--accent2);
+    }
 
     /* Live iteration badge */
     #iter-badge {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
       color: var(--accent);
-      background: rgba(249,115,22,0.1);
-      border: 1px solid rgba(249,115,22,0.2);
+      background: rgba(249, 115, 22, 0.1);
+      border: 1px solid rgba(249, 115, 22, 0.2);
       padding: 2px 9px;
       border-radius: 4px;
     }
@@ -665,6 +1079,7 @@
       align-items: center;
       gap: 6px;
     }
+
     .section-divider::after {
       content: '';
       flex: 1;
@@ -680,137 +1095,182 @@
     }
   </style>
 </head>
+
 <body>
 
-<!-- ══ TOPBAR ══════════════════════════════════════════════════════════════════ -->
-<div id="topbar">
-  <div style="display:flex;align-items:center;gap:8px;margin-right:8px;flex-shrink:0;">
-    <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
-      <rect width="28" height="28" rx="6" fill="#6366f1"/>
-      <path d="M7 9h14M7 14h10M7 19h12" stroke="white" stroke-width="2" stroke-linecap="round"/>
-    </svg>
-    <span style="font-weight:800;font-size:15px;">CHAIN <span style="color:var(--accent2)">RUNNER</span></span>
+  <!-- ══ TOPBAR ══════════════════════════════════════════════════════════════════ -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:8px;margin-right:8px;flex-shrink:0;">
+      <svg width="26" height="26" viewBox="0 0 28 28" fill="none">
+        <rect width="28" height="28" rx="6" fill="#6366f1" />
+        <path d="M7 9h14M7 14h10M7 19h12" stroke="white" stroke-width="2" stroke-linecap="round" />
+      </svg>
+      <span style="font-weight:800;font-size:15px;">CHAIN <span style="color:var(--accent2)">RUNNER</span></span>
+    </div>
+
+    <a href="index.html" class="nav-btn">⚡ Bulk Runner</a>
+    <a href="chain.html" class="nav-btn active">🔗 Chain Runner</a>
+
+    <div style="flex:1;"></div>
+
+    <!-- Global env label -->
+    <span style="font-size:11px;color:var(--muted);">Global Env:</span>
+    <div id="global-env-list" style="display:flex;gap:5px;flex-wrap:wrap;max-width:400px;"></div>
+    <button id="add-env-btn"
+      style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:Syne,sans-serif;transition:all 0.15s;"
+      onmouseenter="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'"
+      onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Env Var</button>
+
+    <div id="run-status-badge"
+      style="font-size:11px;color:var(--muted);font-family:monospace;background:var(--surface);border:1px solid var(--border);padding:3px 10px;border-radius:4px;">
+      IDLE</div>
   </div>
 
-  <a href="index.html" class="nav-btn">⚡ Bulk Runner</a>
-  <a href="chain.html" class="nav-btn active">🔗 Chain Runner</a>
 
-  <div style="flex:1;"></div>
+  <!-- ══ MAIN GRID ══════════════════════════════════════════════════════════════ -->
+  <div id="main-grid">
 
-  <!-- Global env label -->
-  <span style="font-size:11px;color:var(--muted);">Global Env:</span>
-  <div id="global-env-list" style="display:flex;gap:5px;flex-wrap:wrap;max-width:400px;"></div>
-  <button id="add-env-btn" style="background:transparent;border:1px dashed var(--border);color:var(--muted);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;font-family:Syne,sans-serif;transition:all 0.15s;" onmouseenter="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">+ Env Var</button>
+    <!-- ══ LEFT: Steps Builder ══ -->
+    <div id="left-col">
 
-  <div id="run-status-badge" style="font-size:11px;color:var(--muted);font-family:monospace;background:var(--surface);border:1px solid var(--border);padding:3px 10px;border-radius:4px;">IDLE</div>
-</div>
-
-
-<!-- ══ MAIN GRID ══════════════════════════════════════════════════════════════ -->
-<div id="main-grid">
-
-  <!-- ══ LEFT: Steps Builder ══ -->
-  <div id="left-col">
-
-    <!-- Steps list -->
-    <div id="steps-scroll">
-      <div id="steps-container">
-        <!-- Steps injected here by chain.js -->
-      </div>
-      <div id="add-step-btn">+ Add API Step</div>
-    </div>
-
-    <!-- Global env editor (inline mini-panel) -->
-    <div id="env-panel" style="display:none;">
-      <div class="section-divider">Global Variables</div>
-      <div id="env-kv-list"></div>
-      <button class="btn-add-kv" id="add-env-kv-btn">+ Add Variable</button>
-    </div>
-
-    <!-- Run Controls -->
-    <div id="run-controls">
-      <div id="run-controls-row">
-        <div>
-          <div class="label">Iterations</div>
-          <input class="num-in" id="iterations-input" type="number" min="1" max="500" value="1" />
+      <!-- Steps list -->
+      <div id="steps-scroll">
+        <div id="steps-container">
+          <!-- Steps injected here by chain.js -->
         </div>
-        <div>
-          <div class="label">Step Delay (ms)</div>
-          <input class="num-in" id="step-delay-input" type="number" min="0" value="200" />
-        </div>
-        <div>
-          <div class="label">Iter Delay (ms)</div>
-          <input class="num-in" id="iter-delay-input" type="number" min="0" value="0" />
-        </div>
+        <div id="add-step-btn">+ Add API Step</div>
       </div>
 
-      <button id="launch-chain-btn" disabled>🔗 RUN CHAIN</button>
-      <button id="abort-chain-btn">■ ABORT</button>
+      <!-- Global env editor (inline mini-panel) -->
+      <div id="env-panel" style="display:none;">
+        <div class="section-divider">Global Variables</div>
+        <div id="env-kv-list"></div>
+        <button class="btn-add-kv" id="add-env-kv-btn">+ Add Variable</button>
+      </div>
+
+      <!-- Run Controls -->
+      <div id="run-controls">
+        <div id="run-controls-row">
+          <div>
+            <div class="label">Iterations</div>
+            <input class="num-in" id="iterations-input" type="number" min="1" max="500" value="1" />
+          </div>
+          <div>
+            <div class="label">Step Delay (ms)</div>
+            <input class="num-in" id="step-delay-input" type="number" min="0" value="200" />
+          </div>
+          <div>
+            <div class="label">Iter Delay (ms)</div>
+            <input class="num-in" id="iter-delay-input" type="number" min="0" value="0" />
+          </div>
+        </div>
+
+        <button id="launch-chain-btn" disabled>🔗 RUN CHAIN</button>
+        <button id="abort-chain-btn">■ ABORT</button>
+      </div>
+    </div>
+    <!-- END LEFT ═══════════════════════════ -->
+
+
+    <!-- ══ RIGHT: Monitor ══ -->
+    <div id="right-col">
+
+      <!-- Stats header -->
+      <div id="monitor-header">
+        <div class="stat-pill">
+          <div class="stat-pill-num" id="stat-steps" style="color:var(--text);">0</div>
+          <div class="stat-pill-label">Steps</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-num" id="stat-pass" style="color:var(--green);">0</div>
+          <div class="stat-pill-label">Passed</div>
+        </div>
+        <div class="stat-pill">
+          <div class="stat-pill-num" id="stat-fail" style="color:var(--red);">0</div>
+          <div class="stat-pill-label">Failed</div>
+        </div>
+        <div id="iter-badge">Iter 0 / 0</div>
+
+        <div style="flex:1;"></div>
+
+        <button id="clear-log-btn"
+          style="background:transparent;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:Syne,sans-serif;">Clear</button>
+        <button id="export-log-btn"
+          style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:Syne,sans-serif;transition:all 0.15s;"
+          onmouseenter="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'"
+          onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓ Logs</button>
+
+        <button id="export-chain-btn"
+          style="background:var(--accent2);border:1px solid var(--accent2);color:white;font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:Syne,sans-serif;font-weight:700;transition:all 0.15s;"
+          onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='1'">↓ Chain</button>
+        <label id="import-chain-btn"
+          style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:Syne,sans-serif;transition:all 0.15s;display:inline-block;"
+          onmouseenter="this.style.borderColor='var(--green)';this.style.color='var(--green)'"
+          onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">
+          ↑ Import
+          <input type="file" id="import-chain-input" accept=".json" style="display:none;" />
+        </label>
+      </div>
+
+      <!-- Progress bar -->
+      <div id="chain-progress-wrap">
+        <div style="display:flex;justify-content:space-between;font-family:monospace;font-size:11px;margin-bottom:4px;">
+          <span id="progress-label" style="color:var(--muted);">Waiting…</span>
+          <span id="progress-pct" style="color:var(--accent2);font-weight:700;">0%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Live context viewer -->
+      <div id="ctx-panel">
+        <div
+          style="font-size:10px;color:var(--accent2);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
+          Live Context — extracted variables
+        </div>
+        <div id="ctx-display">
+          <span style="color:var(--muted);font-size:11px;font-family:monospace;">No variables yet — run the chain to see
+            extracted values here.</span>
+        </div>
+      </div>
+
+      <!-- Log stream -->
+      <div id="log-scroll">
+        <div class="empty-msg" id="empty-state">
+          <div style="font-size:28px;margin-bottom:10px;">🔗</div>
+          <div style="font-size:13px;font-weight:700;">No chain runs yet</div>
+          <div style="font-size:11px;margin-top:4px;">Build your steps, then hit Run Chain.</div>
+        </div>
+      </div>
+
+    </div>
+    <!-- END RIGHT ════════════════════════ -->
+
+  </div>
+
+    <!-- FOOTER ═════════════════════════ -->
+   <div id="topbar" class="panel" style="justify-content:center;">
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-right:10px;flex-shrink:0;">
+      <span style="font-weight:800;font-size:15px;letter-spacing:0.03em;">Developed By <span style="color:var(--accent2)">MUDASIR</span></span>
     </div>
   </div>
-  <!-- END LEFT ═══════════════════════════ -->
 
-
-  <!-- ══ RIGHT: Monitor ══ -->
-  <div id="right-col">
-
-    <!-- Stats header -->
-    <div id="monitor-header">
-      <div class="stat-pill">
-        <div class="stat-pill-num" id="stat-steps" style="color:var(--text);">0</div>
-        <div class="stat-pill-label">Steps</div>
-      </div>
-      <div class="stat-pill">
-        <div class="stat-pill-num" id="stat-pass" style="color:var(--green);">0</div>
-        <div class="stat-pill-label">Passed</div>
-      </div>
-      <div class="stat-pill">
-        <div class="stat-pill-num" id="stat-fail" style="color:var(--red);">0</div>
-        <div class="stat-pill-label">Failed</div>
-      </div>
-      <div id="iter-badge">Iter 0 / 0</div>
-
-      <div style="flex:1;"></div>
-
-      <button id="clear-log-btn" style="background:transparent;border:none;color:var(--muted);font-size:11px;cursor:pointer;font-family:Syne,sans-serif;">Clear</button>
-      <button id="export-log-btn" style="background:transparent;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;font-family:Syne,sans-serif;transition:all 0.15s;" onmouseenter="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--muted)'">↓ Export</button>
-    </div>
-
-    <!-- Progress bar -->
-    <div id="chain-progress-wrap">
-      <div style="display:flex;justify-content:space-between;font-family:monospace;font-size:11px;margin-bottom:4px;">
-        <span id="progress-label" style="color:var(--muted);">Waiting…</span>
-        <span id="progress-pct" style="color:var(--accent2);font-weight:700;">0%</span>
-      </div>
-      <div class="progress-track">
-        <div class="progress-fill" id="progress-fill"></div>
+  <!-- ── Custom Confirm Dialog ── -->
+  <div id="confirm-overlay">
+    <div id="confirm-box">
+      <div id="confirm-icon">🗑️</div>
+      <div id="confirm-title">Remove Step</div>
+      <div id="confirm-desc">Are you sure you want to remove <b id="confirm-step-name"></b>?<br />This action cannot be
+        undone.</div>
+      <div id="confirm-actions">
+        <button class="confirm-btn" id="confirm-cancel">Cancel</button>
+        <button class="confirm-btn" id="confirm-ok">Remove</button>
       </div>
     </div>
-
-    <!-- Live context viewer -->
-    <div id="ctx-panel">
-      <div style="font-size:10px;color:var(--accent2);font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;">
-        Live Context — extracted variables
-      </div>
-      <div id="ctx-display">
-        <span style="color:var(--muted);font-size:11px;font-family:monospace;">No variables yet — run the chain to see extracted values here.</span>
-      </div>
-    </div>
-
-    <!-- Log stream -->
-    <div id="log-scroll">
-      <div class="empty-msg" id="empty-state">
-        <div style="font-size:28px;margin-bottom:10px;">🔗</div>
-        <div style="font-size:13px;font-weight:700;">No chain runs yet</div>
-        <div style="font-size:11px;margin-top:4px;">Build your steps, then hit Run Chain.</div>
-      </div>
-    </div>
-
   </div>
-  <!-- END RIGHT ════════════════════════ -->
 
-</div>
-
-<script src="chain.js"></script>
+  <script src="chain.js"></script>
 </body>
+
 </html>
